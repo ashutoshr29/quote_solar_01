@@ -9,10 +9,14 @@ st.set_page_config(page_title="Solar Quotation", page_icon=None, layout="centere
 
 st.sidebar.markdown("# System Details")
 
-if "no_panel_value" not in st.session_state:
-    st.session_state.no_panel_value = ""
+if "panel_input" not in st.session_state:
+    st.session_state.panel_input = 6
+
+if "actual_cap" not in st.session_state:
+    st.session_state.actual_cap = 3.27
+
 if "inverter_value" not in st.session_state:
-    st.session_state.inverter_value = ""
+    st.session_state.inverter_value = "3"
 
 def format_inr(amount):
     return format_currency(amount, 'INR', locale='en_IN').replace("₹", "Rs ").strip()
@@ -78,52 +82,66 @@ def edit_pdf(input_pdf, capacity, kwrate, gstrate, subsidy, panel_wp, no_panel, 
         st.toast('Create Pdf Error')
 
 
-st.markdown("## Quotation Generator")
 
-a_col1, a_col2, a_col3, a_col4, a_col5 = st.columns([1, 1, 1, 1, 1])
-
-capacity = a_col1.text_input("Capacity (KWp)")
-kwrate = a_col2.text_input("Rate per Wp")
-gstrate = a_col3.text_input("GST Rate %","13.8")
-subsidy = a_col4.text_input("Subsidy")
-panel_wp = a_col5.text_input("Panel (W)","545")
-
-if st.button("Calculate", use_container_width=True):
+def calc_fun():
     try:
         basic_syst_cost = float(capacity) * float(kwrate) * 1000
         total_gst = float(basic_syst_cost) * (float(gstrate)/100)
         total_amount = float(basic_syst_cost) + float(total_gst)
         total_investment = float(total_amount) - float(subsidy)
-        no_panels = math.ceil( float(capacity) * 1000/ float(panel_wp) )
-        inverter = math.floor(float(capacity))
+        st.session_state.inverter_value = math.floor(float(capacity))
         
-        st.session_state.no_panel_value = no_panels
-        st.session_state.inverter_value = inverter
-
         st.sidebar.markdown(f"Basic System Cost: {format_inr(basic_syst_cost)}")
         st.sidebar.markdown(f"GST: {format_inr(total_gst)}")
         st.sidebar.markdown(f"Total Amount: {format_inr(total_amount)}")
         st.sidebar.markdown(f"Subsidy: {format_inr(subsidy)}")
         st.sidebar.markdown(f"Total Investement: {format_inr(total_investment)}")
-        st.sidebar.markdown(f"No of Panels: {no_panels}")
-        st.sidebar.markdown(f"Inverter: {(inverter)} KW")
+        st.sidebar.markdown(f"No of Panels: {st.session_state.panel_input}")
+        st.sidebar.markdown(f"Capacity: {st.session_state.actual_cap}")
+        st.sidebar.markdown(f"Inverter: {(st.session_state.inverter_value)} KW")
+
+        st.toast("System Details Generate!")
     except:
         st.toast('Calculation Error')
 
+
+def panel_changed():
+    try:
+        actual_capacity = int(panel_wp) * st.session_state.panel_input / 1000
+        st.session_state.actual_cap = actual_capacity
+        st.toast(f"Panels change to {st.session_state.panel_input}")
+
+    except:
+        st.toast('No of Panel change Error')
+
+st.markdown("## Quotation Generator")
+
+a_col1, a_col2, a_col3, a_col4, a_col5, a_col6 = st.columns([1, 1, 1, 1, 1, 1])
+
+panel_wp = a_col1.text_input("Panel (W)","545")
+no_panel = a_col2.number_input("No of Panels", min_value=1, max_value=100, step=1, key="panel_input", on_change=panel_changed)
+capacity = a_col3.text_input("Capacity (KWp)", value=st.session_state.actual_cap)
+kwrate = a_col4.text_input("Rate per Wp","60")
+gstrate = a_col5.text_input("GST Rate %","13.8")
+subsidy = a_col6.text_input("Subsidy","78000")
+
+
+st.button("Calculate", on_click= calc_fun, use_container_width=True)
+
+
 b_col1, b_col2, b_col3 = st.columns([1, 1, 1])
-no_panel = b_col1.text_input("No of Panel", st.session_state.no_panel_value)
-inverter = b_col2.text_input("Inverter (KW)", st.session_state.inverter_value)
-quote_no = b_col3.text_input("quote_no")
+inverter = b_col1.text_input("Inverter (KW)", value = st.session_state.inverter_value)
+quote_no = b_col2.text_input("quote_no")
+prepared_by = b_col3.text_input("prepared_by","Nikhil Pisal")
 
 c_col1, c_col2, c_col3 = st.columns([1, 1, 1])
-prepared_by = c_col1.text_input("prepared_by")
-client_name = c_col2.text_input("client_name")
-location = c_col3.text_input("location")
+client_name = c_col1.text_input("client_name")
+location = c_col2.text_input("location","Pune")
 
-d_col1, d_col2, d_col3 = st.columns([1, 1, 1])
-# Default date (optional)
 default_date = datetime.date.today()
-date = d_col1.date_input("Select a date:", value=default_date)
+formatted_date = default_date.strftime("%d-%m-%Y")
+# date = c_col3.date_input("Select a date:", value=default_date, format="DD-MM-YYYY")
+date = c_col3.text_input("Date",value=formatted_date)
 
 input_pdf = "sample01.pdf"
 
