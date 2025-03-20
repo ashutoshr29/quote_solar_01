@@ -3,6 +3,8 @@ import fitz
 from babel.numbers import format_currency
 import io
 
+st.set_page_config(page_title="Solar Quotation", page_icon=None, layout="centered", initial_sidebar_state="auto", menu_items=None)
+
 def format_inr(amount):
     return format_currency(amount, 'INR', locale='en_IN').replace("₹", "Rs ").strip()
 
